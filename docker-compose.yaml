@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  unity:
+    build: .
+    ports:
+      - "8080:8080"
+    command: ["/bin/bash", "bin/start-uc-server", "--port 8080"]
+  unity-ui:
+    build: ui
+    ports:
+      - "8081:3000"
+    command: ["yarn", "start"]
