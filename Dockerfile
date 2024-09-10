@@ -9,17 +9,17 @@ ARG unitycatalog_user_name="unitycatalog"
 ARG unitycatalog_user_home="home"
 ARG unitycatalog_user_basedir="${unitycatalog_home}/${unitycatalog_user_home}"
 # Specify any custom parameters necessary to generate
-# the Uber-Jar by SBT. 
+# the Uber-Jar by SBT.
 # Note: The default allocated heam memory size is too small
 # and will cause the process to fail when attempting to compile
 # and generate the Uber-Jar. Therefore it is important to choose
-# a size large enough for the compiler to run. 
+# a size large enough for the compiler to run.
 ARG sbt_args="-J-Xmx2G"
 # FIXME Pass it from the outside
 ARG unitycatalog_version="0.2.0-SNAPSHOT"
 ARG jars_directory="server/target/jars"
 
-FROM eclipse-temurin:17-jdk-alpine AS package_server
+FROM eclipse-temurin:17-jdk AS package_server
 
 ARG unitycatalog_repo
 ARG sbt_args
@@ -28,10 +28,9 @@ ARG jars_directory
 # Install required packages
 RUN <<EOF
     set -ex;
-    apk update;
-    apk upgrade; 
-    apk add bash git;
-    rm -R /var/cache/apk/*;
+    apt-get update;
+    apt-get upgrade -y;
+    apt-get install bash git -y;
 EOF
 
 WORKDIR "${unitycatalog_repo}"
@@ -46,7 +45,7 @@ RUN build/sbt ${sbt_args} server/package
 # Copy the jar files into a single directory
 RUN ./docker/copy_jars_from_classpath.sh ${jars_directory}
 
-FROM eclipse-temurin:17-jdk-alpine AS build_uc
+FROM eclipse-temurin:17-jdk AS build_uc
 
 ARG unitycatalog_uid
 ARG unitycatalog_home
@@ -66,10 +65,9 @@ EXPOSE 8081
 
 RUN <<EOF
     set -ex;
-    apk update;
-    apk upgrade; 
-    apk add bash;
-    rm -R /var/cache/apk/*;
+    apt-get update;
+    apt-get upgrade -y;
+    apt-get install bash -y;
 EOF
 
 # Define the shell used within the container
@@ -87,7 +85,7 @@ EOF
 
 # Create system group and user for Unity Catalog
 # Ensure the user created has their HOME pointing to the volume
-# created to persist user data and the sbt cached files that 
+# created to persist user data and the sbt cached files that
 # are created as a result of compiling the unity catalog.
 # This also ensures that the container can run independently from
 # the storage, so we can have ephemeral docker instances with --rm
@@ -95,9 +93,9 @@ EOF
 RUN <<-EOF
     #!/usr/bin/env bash
     set -ex;
-    addgroup --system --gid "${unitycatalog_uid}" "${unitycatalog_user_name}";
-    adduser --system --uid "${unitycatalog_uid}" \
-            --ingroup "${unitycatalog_user_name}" \
+    groupadd --system --gid "${unitycatalog_uid}" "${unitycatalog_user_name}";
+    useradd --system --uid "${unitycatalog_uid}" \
+            --gid "${unitycatalog_user_name}" \
             --home "${unitycatalog_user_basedir}" \
             --shell "$(/usr/bin/env bash)" \
             "${unitycatalog_user_name}";
