@@ -13,7 +13,7 @@ ARG unitycatalog_user_basedir="${unitycatalog_home}/${unitycatalog_user_home}"
 # Note: The default allocated heap memory size is too small
 # and will cause the process to fail when attempting to compile
 # and generate the Uber-Jar. Therefore it is important to choose
-# a size large enough for the compiler to run. 
+# a size large enough for the compiler to run.
 ARG sbt_args="-J-Xmx5G"
 # FIXME Pass it from the outside
 ARG unitycatalog_version="0.2.0-SNAPSHOT"
@@ -23,7 +23,7 @@ ARG cli_assembly_jar="${unitycatalog_repo}/${unitycatalog_jar}/unitycatalog-cli-
 # Building the Uber-Jar #
 #########################
 
-FROM eclipse-temurin:17-jdk-alpine AS assemble_cli
+FROM eclipse-temurin:17-jdk AS assemble_cli
 
 ARG unitycatalog_repo
 ARG sbt_args
@@ -31,10 +31,9 @@ ARG sbt_args
 # Install required packages
 RUN <<EOF
     set -ex;
-    apk update;
-    apk upgrade; 
-    apk add bash git;
-    rm -R /var/cache/apk/*;
+    apt-get update;
+    apt-get upgrade -y;
+    apt-get install bash git -y;
 EOF
 
 # If the WORKDIR doesn't exist, it will be created
@@ -50,7 +49,7 @@ RUN build/sbt ${sbt_args} cli/assembly
 # Running the UC server #
 #########################
 
-FROM eclipse-temurin:17-jdk-alpine AS build_cli
+FROM eclipse-temurin:17-jdk AS build_cli
 
 ARG unitycatalog_uid
 ARG unitycatalog_home
@@ -68,20 +67,19 @@ ARG unitycatalog_version
 
 RUN <<EOF
     set -ex;
-    apk update;
-    apk upgrade; 
-    apk add bash libc6-compat;
-    rm -R /var/cache/apk/*;
+    apt-get update;
+    apt-get upgrade -y;
+    apt-get install bash -y;
 EOF
 
 # Define the shell used within the container
-SHELL ["/bin/bash", "-i", "-c", "-o", "pipefail"] 
+SHELL ["/bin/bash", "-i", "-c", "-o", "pipefail"]
 
 ENV CLI_ASSEMBLY_JAR="${unitycatalog_jars}/unitycatalog-cli-assembly-${unitycatalog_version}.jar"
 ENV UC_CLI_BIN="${unitycatalog_home}/${unitycatalog_bin}/start-uc-cli"
 
 # Create the UC directories
-RUN <<-EOF 
+RUN <<-EOF
     set -ex;
     mkdir -p "${unitycatalog_jars}";
     mkdir -p "${unitycatalog_home}/${unitycatalog_etc}";
@@ -92,7 +90,7 @@ EOF
 
 # Create system group and user for Unity Catalog
 # ENsure the user created has their HOME pointing to the volume
-# created to persist user data and the sbt cached files that 
+# created to persist user data and the sbt cached files that
 # are created as a result of compiling the unity catalog.
 # This also ensures that the container can run independently from
 # the storage, so we can have ephemeral docker instances with --rm
@@ -100,9 +98,9 @@ EOF
 RUN <<-EOF
     #!/usr/bin/env bash
     set -ex;
-    addgroup --system --gid "${unitycatalog_uid}" "${unitycatalog_user_name}";
-    adduser --system --uid "${unitycatalog_uid}" \
-            --ingroup "${unitycatalog_user_name}" \
+    groupadd --system --gid "${unitycatalog_uid}" "${unitycatalog_user_name}";
+    useradd --system --uid "${unitycatalog_uid}" \
+            --gid "${unitycatalog_user_name}" \
             --home "${unitycatalog_user_basedir}" \
             --shell /bin/bash \
             "${unitycatalog_user_name}";
@@ -129,7 +127,7 @@ COPY <<-"EOF" "${UC_CLI_BIN}"
         exit 1
     fi
 
-    # Create relative path to jar so that it is able to find the 
+    # Create relative path to jar so that it is able to find the
     # configuration files in etc/conf/...
     relative_path_to_jar="${CLI_ASSEMBLY_JAR//"$ROOT_DIR/"/}"
 
