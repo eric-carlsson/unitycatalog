@@ -1,9 +1,17 @@
 services:
   unitycatalog:
-    build: .
-    command: ["/bin/bash", "bin/start-uc-server", "--port 80"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/bash", "bin/start-uc-server", "--port 80"]
   unitycatalog-ui:
     build: ui
+  unitycatalog-cli:
+    build:
+      context: .
+      dockerfile: uc-cli.dockerfile
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["sleep infinity"]
   nginx:
     image: nginx:1.27.1
     volumes:
