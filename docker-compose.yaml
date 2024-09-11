@@ -1,13 +1,12 @@
-version: "3.8"
-
 services:
-  unity:
+  unitycatalog:
     build: .
-    ports:
-      - "8080:8080"
-    command: ["/bin/bash", "bin/start-uc-server", "--port 8080"]
-  unity-ui:
+    command: ["/bin/bash", "bin/start-uc-server", "--port 80"]
+  unitycatalog-ui:
     build: ui
+  nginx:
+    image: nginx:1.27.1
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
     ports:
-      - "8081:3000"
-    command: ["yarn", "start"]
+      - 8080:80
